@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  ydl
+
+Globals:
+  Function:
+    Timeout: 300
+    Environment:
+      Variables:
+        BUCKET_NAME: !Ref S3Bucket
+
+Resources:
+  S3Bucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Retain
+  YdlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      Architectures:
+        - x86_64
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: ./src
+      DockerTag: ytd-v1
+
+Outputs:
+  BucketName:
+    Description: "BucketName"
+    Value: !Ref S3Bucket
