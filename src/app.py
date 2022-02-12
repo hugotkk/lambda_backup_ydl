@@ -1,4 +1,5 @@
 import re
+import os
 import logging
 import boto3
 from botocore.exceptions import ClientError
@@ -37,7 +38,7 @@ def handler(event, context):
             out = "/tmp/{}.mp4".format(id)
             output = check_output("yt-dlp {} -o '{}'".format(id, out), shell=True)
             if output:
-                upload_file(out, "")
+                upload_file(out, os.environ['BUCKET_NAME'])
             else:
                 print(output)
 

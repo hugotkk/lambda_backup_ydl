@@ -6,9 +6,6 @@ Description: >
 Globals:
   Function:
     Timeout: 300
-    Environment:
-      Variables:
-        BUCKET_NAME: !Ref S3Bucket
 
 Resources:
   S3Bucket:
@@ -16,6 +13,9 @@ Resources:
     DeletionPolicy: Retain
   YdlFunction:
     Type: AWS::Serverless::Function
+    Environment:
+      Variables:
+        BUCKET_NAME: !Ref S3Bucket
     Properties:
       PackageType: Image
       Architectures:
