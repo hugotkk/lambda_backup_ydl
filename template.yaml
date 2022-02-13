@@ -13,12 +13,12 @@ Resources:
     DeletionPolicy: Retain
   YdlFunction:
     Type: AWS::Serverless::Function
-    Environment:
-      Variables:
-        BUCKET_NAME: !Ref S3Bucket
-    Policies:                                                                                                         
-    - S3WritePolicy
     Properties:
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref S3Bucket
+      Policies:                                                                                                         
+      - S3WritePolicy
       PackageType: Image
       Architectures:
         - x86_64
