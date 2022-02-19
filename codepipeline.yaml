@@ -181,16 +181,6 @@ Resources:
             Version: "1"
           Configuration:
             ProjectName: !Ref CodeBuildProjectDeploy
-            # EnvironmentVariables: !Sub |
-            #   [
-            #     {"name": "ENV_TEMPLATE", "value": "packaged-prod.yaml"},
-            #     {"name": "ENV_REGION", "value": "${ProdRegion}"},
-            #     {"name": "ENV_STACK_NAME", "value": "${ProdStackName}"},
-            #     {"name": "ENV_PIPELINE_EXECUTION_ROLE", "value": "${ProdPipelineExecutionRole}"},
-            #     {"name": "ENV_CLOUDFORMATION_EXECUTION_ROLE", "value": "${ProdCloudFormationExecutionExeRole}"},
-            #     {"name": "ENV_BUCKET", "value": "${ProdArtifactBucket}"},
-            #     {"name": "ENV_IMAGE_REPOSITORY", "value": "${ProdImageRepository}"}
-            #   ]
           InputArtifacts:
           - Name: BuildArtifactAsZip
           RunOrder: 2
