@@ -11,7 +11,7 @@ Resources:
   S3Bucket:
     Type: 'AWS::S3::Bucket'
     DeletionPolicy: Retain
-  YdlFunction:
+  DLEngine:
     Type: AWS::Serverless::Function
     Properties:
       Environment:
@@ -25,8 +25,8 @@ Resources:
         - x86_64
     Metadata:
       Dockerfile: Dockerfile
-      DockerContext: ./src
-      DockerTag: ytd-v1
+      DockerContext: dl_engine/
+      DockerTag: dl_engine-v1
 
 Outputs:
   BucketName:
