@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: AWS SAM template for two Lambda functions that interact with YouTube, S3, and SQS.
+Description: This stack manages the download and upload of YouTube videos to an S3 bucket, and the parsing of YouTube playlist URLs to send them to an SQS queue. It consists of two Lambda functions, an S3 bucket, and an SQS queue.
 
 Resources:
 
@@ -13,34 +13,123 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: youtube-playlist-queue-20230805
+      VisibilityTimeout: 300 # 5 minutes
+
+  SendToSQSLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+      Path: /
+      Policies:
+        - PolicyName: SendToSQSPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'sqs:SendMessage'
+                  - 'sqs:GetQueueUrl'
+                Resource: !GetAtt MySQSQueue.Arn
+        - PolicyName: LambdaCloudWatchLogsPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+
+  DownloadLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+      Path: /
+      Policies:
+        - PolicyName: LambdaSQSReadPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                  - sqs:GetQueueUrl
+                Resource: !GetAtt MySQSQueue.Arn # Reference to the ARN of your SQS queue
+        - PolicyName: LambdaCloudWatchLogsPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+        - PolicyName: S3UploadPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:CreateMultipartUpload
+                  - s3:AbortMultipartUpload
+                  - s3:ListMultipartUploadParts
+                  - s3:ListBucketMultipartUploads
+                Resource: 
+                  - !Sub arn:aws:s3:::${MyS3Bucket}/*
+                  - !Sub arn:aws:s3:::${MyS3Bucket}
 
   DownloadYouTubeVideoFunction:
-    Type: AWS::Serverless::Function
+    Type: AWS::Serverless::Function 
     Properties:
-      CodeUri: src/download_youtube_video.py
-      Handler: download_youtube_video.lambda_handler
-      Runtime: python3.8
-      Policies:
-        - S3CrudPolicy:
-            BucketName: !Ref MyS3Bucket
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - 'sqs:SendMessage'
-              Resource: !GetAtt MySQSQueue.Arn
+      MemorySize: 1024
+      EphemeralStorage:
+        Size: 1024
+      Role: !GetAtt DownloadLambdaExecutionRole.Arn
+      Tracing: Active # Enable X-Ray tracing
+      CodeUri: download_youtube_video
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      Timeout: 300 # 5 minutes
+      Environment: 
+        Variables:
+          BUCKET_NAME: !Ref MyS3Bucket
+      Events:
+        SQSTrigger:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt MySQSQueue.Arn
+            BatchSize: 1
 
   SendPlaylistToSQSFunction:
-    Type: AWS::Serverless::Function
+    Type: AWS::Serverless::Function 
     Properties:
-      CodeUri: src/send_playlist_to_sqs.py
-      Handler: send_playlist_to_sqs.lambda_handler
-      Runtime: python3.8
-      Policies:
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - 'sqs:SendMessage'
-              Resource: !GetAtt MySQSQueue.Arn
-
+      Role: !GetAtt SendToSQSLambdaExecutionRole.Arn
+      Tracing: Active # Enable X-Ray tracing
+      CodeUri: send_playlist_to_sqs
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      Timeout: 300 # 5 minutes
+      Environment: 
+        Variables:
+          QUEUE_NAME: !GetAtt MySQSQueue.QueueName
