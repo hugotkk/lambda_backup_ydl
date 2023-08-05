@@ -4,8 +4,17 @@ import os
 from datetime import datetime
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core import patch_all
+import re
 
 patch_all()
+
+
+def title_to_slug(title):
+    slug = title.lower()
+    slug = slug.replace(' ', '-')
+    slug = re.sub(r'[^\w-]', '', slug)
+    slug = slug.strip('-')
+    return slug
 
 def lambda_handler(event, context):
     bucket_name = os.environ['BUCKET_NAME']
@@ -13,7 +22,7 @@ def lambda_handler(event, context):
         youtube_url = record['body']
         youtube = YouTube(youtube_url)
         video_id = youtube.video_id
-        video_title = youtube.title
+        video_title = title_to_slug(youtube.title)
 
         # Download video in highest quality MP4 format
         video_stream = youtube.streams.filter(file_extension='mp4').get_highest_resolution()
