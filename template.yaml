@@ -8,12 +8,18 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: youtube-video-downloads-20230805
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
 
   MySQSQueue:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: youtube-playlist-queue-20230805
       VisibilityTimeout: 300 # 5 minutes
+      KmsMasterKeyId: alias/aws/sqs
+      KmsDataKeyReusePeriodSeconds: 300 # 5 minutes
 
   SendToSQSLambdaExecutionRole:
     Type: AWS::IAM::Role
