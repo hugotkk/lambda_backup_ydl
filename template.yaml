@@ -125,7 +125,7 @@ Resources:
           Type: SQS
           Properties:
             Queue: !GetAtt MySQSQueue.Arn
-            BatchSize: 1
+            BatchSize: 10
 
   SendPlaylistToSQSFunction:
     Type: AWS::Serverless::Function 
