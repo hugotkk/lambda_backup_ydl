@@ -24,6 +24,10 @@ def lambda_handler(event, context):
         video_id = youtube.video_id
         video_title = title_to_slug(youtube.title)
 
+        subsegment = xray_recorder.begin_subsegment('Download youtube video')
+        subsegment.put_metadata('video_id', video_id)
+        subsegment.put_metadata('video_title', video_title)
+
         # Download video in highest quality MP4 format
         video_stream = youtube.streams.filter(file_extension='mp4').get_highest_resolution()
         filename = f"{video_id} {video_title}.mp4"
@@ -40,6 +44,8 @@ def lambda_handler(event, context):
 
         # Delete local file after upload
         os.remove(f"/tmp/{filename}")
+
+        xray_recorder.end_subsegment()
 
     return {
         'statusCode': 200,
